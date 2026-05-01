@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "CheckIn": {
+      "title": "Check-in",
+      "description": "A user's mindful eating check-in record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "emotions": { "type": "array", "items": { "type": "string" } },
+        "hungerScale": { "type": "integer" },
+        "reflection": { "type": "string" },
+        "aiResponse": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "emotions", "hungerScale", "timestamp"]
+    },
+    "Log": {
+      "title": "Post-eat Log",
+      "description": "Recording feelings after eating",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "checkInId": { "type": "string" },
+        "satisfied": { "type": "string" },
+        "emotions": { "type": "array", "items": { "type": "string" } },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "satisfied", "timestamp"]
+    },
+    "User": {
+      "title": "User Profile",
+      "description": "Basic user profile information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "onboardingCompleted": { "type": "boolean" },
+        "reminderTime": { "type": "string", "description": "HH:mm format" }
+      },
+      "required": ["name", "email", "createdAt", "onboardingCompleted"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    },
+    "checkins/{checkInId}": {
+      "schema": "CheckIn",
+      "description": "Collection of user check-ins"
+    },
+    "logs/{logId}": {
+      "schema": "Log",
+      "description": "Collection of post-meal logs"
+    }
+  }
+}

@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // User Validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'createdAt', 'onboardingCompleted']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.onboardingCompleted is bool &&
+             (!('reminderTime' in data) || data.reminderTime == null || (data.reminderTime is string && data.reminderTime.size() <= 10)) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp || data.updatedAt is string);
+    }
+
+    // CheckIn Validation
+    function isValidCheckIn(data) {
+      return data.keys().hasAll(['userId', 'emotions', 'hungerScale', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.emotions is list &&
+             data.emotions.size() > 0 &&
+             data.hungerScale is int &&
+             data.hungerScale >= 0 &&
+             data.hungerScale <= 100 &&
+             data.timestamp is timestamp;
+    }
+
+    // Log Validation
+    function isValidLog(data) {
+      return data.keys().hasAll(['userId', 'satisfied', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.satisfied is string &&
+             data.satisfied.size() <= 200 &&
+             data.timestamp is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'onboardingCompleted', 'reminderTime', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    match /checkins/{checkInId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidCheckIn(incoming()) && isValidId(checkInId);
+      allow update: if false; // Check-ins are immutable for now
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /logs/{logId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidLog(incoming()) && isValidId(logId);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
