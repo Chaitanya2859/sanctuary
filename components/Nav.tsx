@@ -121,20 +121,12 @@ export function Nav() {
             </div>
           )}
 
-          {user ? (
-            <button 
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-full bg-white border border-[#5a5a40]/10 text-[#3a3a2e] hover:bg-white/50 transition-colors"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          ) : (
-            <Link href="/login" className="md:hidden">
-              <button className="bg-[#5a5a40] text-[#f5f5f0] border-none rounded-full px-5 py-2 text-[12px] font-medium cursor-pointer tracking-[0.01em] transition-all">
-                Login
-              </button>
-            </Link>
-          )}
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2.5 rounded-full bg-white border border-[#5a5a40]/10 text-[#3a3a2e] hover:bg-white/50 transition-colors"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
 
         {/* Mobile Menu Overlay */}
@@ -147,19 +139,42 @@ export function Nav() {
               className="absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl shadow-2xl border border-[#5a5a40]/10 p-8 flex flex-col gap-8 md:hidden z-40 rounded-[32px]"
             >
               <div className="flex flex-col gap-6">
-                {user && links.map((link) => (
-                  <Link
-                    key={link.name}
-                    href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={cn(
-                      "text-xl font-serif",
-                      pathname === link.href ? "text-[#3a3a2e]" : "text-[#3a3a2e]/40"
-                    )}
-                  >
-                    {link.name}
-                  </Link>
-                ))}
+                {user ? (
+                  links.map((link) => (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "text-xl font-serif",
+                        pathname === link.href ? "text-[#3a3a2e]" : "text-[#3a3a2e]/40"
+                      )}
+                    >
+                      {link.name}
+                    </Link>
+                  ))
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="text-left text-xl font-serif text-[#3a3a2e]/40 hover:text-[#3a3a2e]"
+                    >
+                      Method
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        document.getElementById('support')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="text-left text-xl font-serif text-[#3a3a2e]/40 hover:text-[#3a3a2e]"
+                    >
+                      Safety
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="h-[1px] w-full bg-[#5a5a40]/5" />
