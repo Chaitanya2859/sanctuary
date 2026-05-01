@@ -97,7 +97,8 @@ export default function ProgressPage() {
           dailyCounts[d] = (dailyCounts[d] || 0) + 1;
         }
       });
-
+      // 1. Process Heatmap Data for viewed month
+      const daysInMonthLabel = endOfMonth.getDate();
       const heatmap = Array.from({ length: daysInMonthLabel }, (_, i) => {
         const d = i + 1;
         const count = dailyCounts[d] || 0;
@@ -107,7 +108,6 @@ export default function ProgressPage() {
       setDays(heatmap);
 
       // 2. Calculate Streak
-      const uniqueDates = new Set(allEntries.map(e => e.timestamp.toDate().toDateString()));
       let currentStreak = 0;
       const checkDate = new Date();
       
