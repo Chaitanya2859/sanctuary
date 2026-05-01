@@ -121,13 +121,20 @@ export function Nav() {
             </div>
           )}
 
-          {/* Mobile Menu Toggle */}
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2.5 rounded-full bg-white border border-[#5a5a40]/10 text-[#3a3a2e] hover:bg-white/50 transition-colors"
-          >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {user ? (
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2.5 rounded-full bg-white border border-[#5a5a40]/10 text-[#3a3a2e] hover:bg-white/50 transition-colors"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          ) : (
+            <Link href="/login" className="md:hidden">
+              <button className="bg-[#5a5a40] text-[#f5f5f0] border-none rounded-full px-5 py-2 text-[12px] font-medium cursor-pointer tracking-[0.01em] transition-all">
+                Login
+              </button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Overlay */}

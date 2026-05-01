@@ -62,10 +62,15 @@ export default function SanctuaryPage() {
             getDocs(qLogs)
           ]);
 
-          const checkins = checkinsSnap.docs.map(d => ({ ...d.data(), type: 'checkin' } as { timestamp: Timestamp; type: string; aiResponse?: string; emotions?: string[] }));
-          const logs = logsSnap.docs.map(d => ({ ...d.data(), type: 'log' } as { timestamp: Timestamp; type: string }));
+          const checkins = checkinsSnap.docs
+            .map(d => ({ ...d.data(), type: 'checkin' } as { timestamp: Timestamp; type: string; aiResponse?: string; emotions?: string[] }))
+            .filter(e => e.timestamp);
+          const logs = logsSnap.docs
+            .map(d => ({ ...d.data(), type: 'log' } as { timestamp: Timestamp; type: string }))
+            .filter(e => e.timestamp);
+            
           const allEntries = [...checkins, ...logs].sort((a, b) => 
-            (b.timestamp).toMillis() - (a.timestamp).toMillis()
+            (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0)
           );
 
           if (allEntries.length === 0) {
@@ -73,7 +78,7 @@ export default function SanctuaryPage() {
             return;
           }
 
-          const uniqueDates = new Set(allEntries.map(e => e.timestamp.toDate().toDateString()));
+          const uniqueDates = new Set(allEntries.map(e => e.timestamp?.toDate().toDateString()).filter(Boolean));
           
           // Streak
           let streakCount = 0;

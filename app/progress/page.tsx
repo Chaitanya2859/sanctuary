@@ -70,14 +70,24 @@ export default function ProgressPage() {
         getDocs(qLogs)
       ]);
 
-      const checkins = checkinsSnap.docs.map(d => ({ ...d.data(), type: 'checkin' } as { timestamp: Timestamp; type: string }));
-      const logs = logsSnap.docs.map(d => ({ ...d.data(), type: 'log' } as { timestamp: Timestamp; type: string }));
+      const checkins = checkinsSnap.docs
+        .map(d => ({ ...d.data(), type: 'checkin' } as { timestamp: Timestamp; type: string; usedUrgeSurfing?: boolean; emotions?: string[] }))
+        .filter(e => e.timestamp);
+      const logs = logsSnap.docs
+        .map(d => ({ ...d.data(), type: 'log' } as { timestamp: Timestamp; type: string; satisfied?: string; emotions?: string[] }))
+        .filter(e => e.timestamp);
+      
       const allEntries = [...checkins, ...logs].sort((a, b) => 
-        (b.timestamp).toMillis() - (a.timestamp).toMillis()
+        (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0)
       );
 
-      // 1. Process Heatmap Data for viewed month
-      const daysInMonthLabel = endOfMonth.getDate();
+      if (allEntries.length === 0) {
+        setHasData(false);
+        setLoading(false);
+        return;
+      }
+
+      const uniqueDates = new Set(allEntries.map(e => e.timestamp?.toDate().toDateString()).filter(Boolean));
       const dailyCounts: Record<number, number> = {};
       
       allEntries.forEach(entry => {
