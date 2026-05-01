@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Nav } from '@/components/Nav';
 import { 
@@ -26,7 +26,7 @@ const SOUNDS = [
     icon: CloudRain, 
     color: 'bg-blue-50', 
     textColor: 'text-blue-500',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' // Placeholder, in real app use proper ambient loop
+    url: '/sounds/rain.mp3'
   },
   { 
     id: 'waves', 
@@ -34,7 +34,7 @@ const SOUNDS = [
     icon: Waves, 
     color: 'bg-indigo-50', 
     textColor: 'text-indigo-500',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'
+    url: '/sounds/waves.mp3'
   },
   { 
     id: 'forest', 
@@ -42,7 +42,7 @@ const SOUNDS = [
     icon: Trees, 
     color: 'bg-emerald-50', 
     textColor: 'text-emerald-500',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3'
+    url: '/sounds/forest.mp3'
   },
   { 
     id: 'wind', 
@@ -50,15 +50,15 @@ const SOUNDS = [
     icon: Wind, 
     color: 'bg-slate-50', 
     textColor: 'text-slate-400',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
+    url: '/sounds/wind.mp3'
   },
   { 
-    id: 'cafe', 
-    name: 'Cozy Cafe', 
+    id: 'lofi', 
+    name: 'Lofi', 
     icon: Coffee, 
     color: 'bg-amber-50', 
     textColor: 'text-amber-600',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3'
+    url: '/sounds/lofi.mp3'
   }
 ];
 
@@ -71,13 +71,42 @@ export default function ASMRPage() {
   const toggleSound = (soundId: string) => {
     if (activeSound === soundId) {
       setActiveSound(null);
-      if (audioRef.current) audioRef.current.pause();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     } else {
-      setActiveSound(soundId);
-      // In a real app, you'd load the specific audio URL here
-      // For this demo, we'll just simulate the state
+      // Stop previous if exists
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+
+      const sound = SOUNDS.find(s => s.id === soundId);
+      if (sound) {
+        const audio = new Audio(sound.url);
+        audio.loop = true;
+        audio.volume = volume;
+        audio.play().catch(err => console.error("Audio playback failed:", err));
+        audioRef.current = audio;
+        setActiveSound(soundId);
+      }
     }
   };
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f5f5f0] pt-32 pb-20 selection:bg-primary/20">
@@ -88,11 +117,11 @@ export default function ASMRPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-4">
           <div className="space-y-4">
             <button 
-              onClick={() => router.push('/activities')}
+              onClick={() => router.push('/')}
               className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"
             >
               <ArrowLeft className="w-3 h-3" />
-              Back to activities
+              Back to home
             </button>
             <h1 className="text-4xl md:text-5xl font-serif text-[#3a3a2e] tracking-tight">ASMR Soundboard</h1>
             <p className="text-on-surface-variant/60 font-medium max-w-md">

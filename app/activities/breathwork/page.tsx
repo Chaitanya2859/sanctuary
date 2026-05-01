@@ -14,41 +14,38 @@ export default function BreathworkPage() {
   const router = useRouter();
   const [isActive, setIsActive] = useState(false);
   const [phase, setPhase] = useState<Phase>('inhale');
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+  const [timeLeft, setTimeLeft] = useState(76); // 4 cycles of 19s = 76s
   const [isComplete, setIsComplete] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const phaseRef = useRef<NodeJS.Timeout | null>(null);
 
   const startExercise = () => {
     setIsActive(true);
     setIsComplete(false);
-    setTimeLeft(120);
-    managePhases();
-  };
-
-  const managePhases = () => {
-    const cycle = () => {
-      setPhase('inhale');
-      phaseRef.current = setTimeout(() => {
-        setPhase('hold');
-        phaseRef.current = setTimeout(() => {
-          setPhase('exhale');
-          phaseRef.current = setTimeout(cycle, 8000);
-        }, 7000);
-      }, 4000);
-    };
-    cycle();
+    setTimeLeft(76);
+    setPhase('inhale');
   };
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
+      // Calculate phase based on time elapsed
+      // Total cycle = 19s (4 inhale, 7 hold, 8 exhale)
+      // We start at 76 and go down to 0.
+      const elapsedInCycle = (76 - timeLeft) % 19;
+      
+      if (elapsedInCycle < 4) {
+        setPhase('inhale');
+      } else if (elapsedInCycle < 11) {
+        setPhase('hold');
+      } else {
+        setPhase('exhale');
+      }
+
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
             setIsActive(false);
             setIsComplete(true);
-            if (phaseRef.current) clearTimeout(phaseRef.current);
             return 0;
           }
           return prev - 1;
@@ -59,7 +56,6 @@ export default function BreathworkPage() {
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (phaseRef.current) clearTimeout(phaseRef.current);
     };
   }, [isActive, timeLeft]);
 
@@ -77,13 +73,14 @@ export default function BreathworkPage() {
         {/* Header */}
         <div className="text-center space-y-4 absolute top-32 left-0 right-0">
           <button 
-            onClick={() => router.push('/activities')}
+            onClick={() => router.push('/')}
             className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"
           >
             <ArrowLeft className="w-3 h-3" />
-            Back to activities
+            Back to home
           </button>
-          <h1 className="text-3xl font-serif text-[#3a3a2e]">2-Minute Breathwork</h1>
+          <h1 className="text-3xl font-serif text-[#3a3a2e]">4-7-8 Breathing</h1>
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-terra/60">2 Minutes • 4 Cycles Recommended</p>
         </div>
 
         {/* Breathing Circle */}
@@ -132,66 +129,62 @@ export default function BreathworkPage() {
               <div className="relative w-full h-full flex items-center justify-center">
                 {/* Visual Circle */}
                 <motion.div
-                  animate={{
-                    scale: phase === 'inhale' ? 1.5 : phase === 'exhale' ? 0.8 : phase === 'small-hold' ? 1.5 : 0.8,
+                  variants={{
+                    inhale: { scale: 1.2 },
+                    hold: { scale: 1.2 },
+                    exhale: { scale: 0.8 }
                   }}
+                  animate={phase}
                   transition={{
-                    duration: phase === 'inhale' || phase === 'exhale' ? 4 : 1.5,
-                    ease: "easeInOut"
+                    duration: phase === 'inhale' ? 4 : phase === 'hold' ? 7 : 8,
+                    ease: "linear"
                   }}
-                  className="absolute w-40 h-40 bg-primary/10 rounded-full border border-primary/20"
+                  className="absolute w-72 h-72 bg-primary/20 rounded-full border-2 border-primary/30"
                 />
                 <motion.div
-                  animate={{
-                    scale: phase === 'inhale' ? 1.2 : phase === 'exhale' ? 1 : phase === 'small-hold' ? 1.2 : 1,
+                  variants={{
+                    inhale: { scale: 1.1 },
+                    hold: { scale: 1.1 },
+                    exhale: { scale: 0.9 }
                   }}
+                  animate={phase}
                   transition={{
-                    duration: phase === 'inhale' || phase === 'exhale' ? 4 : 1.5,
-                    ease: "easeInOut"
+                    duration: phase === 'inhale' ? 4 : phase === 'hold' ? 7 : 8,
+                    ease: "linear"
                   }}
-                  className="absolute w-60 h-60 bg-primary/5 rounded-full blur-2xl"
+                  className="absolute w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl"
                 />
                 
                 {/* Labels */}
-                <div className="relative z-10 text-center space-y-1">
-                  <motion.p 
+                <div className="relative z-10 text-center space-y-4 max-w-[200px]">
+                  <motion.div
                     key={phase}
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-2xl font-serif text-[#3a3a2e]"
+                    transition={{ duration: 0.4 }}
                   >
-                    {phase === 'inhale' && 'Inhale (Nose)...'}
-                    {phase === 'hold' && 'Hold...'}
-                    {phase === 'exhale' && 'Exhale (Mouth)...'}
-                  </motion.p>
-                  <p className="text-sm opacity-40 italic pb-2">
-                    {phase === 'inhale' && 'Expand your chest'}
-                    {phase === 'hold' && 'Lungs full, body still'}
-                    {phase === 'exhale' && 'Let it all out'}
-                  </p>
-                  <p className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-30">
-                    {formatTime(timeLeft)}
-                  </p>
+                    <h2 className="text-3xl font-serif text-[#3a3a2e] tracking-tight">
+                      {phase === 'inhale' && 'Inhale'}
+                      {phase === 'hold' && 'Hold'}
+                      {phase === 'exhale' && 'Exhale'}
+                    </h2>
+                    <p className="text-[10px] text-[#3a3a2e]/50 font-bold uppercase tracking-[0.2em] leading-relaxed mt-1">
+                      {phase === 'inhale' && 'Nose, slow and steady'}
+                      {phase === 'hold' && 'Lungs full, body still'}
+                      {phase === 'exhale' && 'Mouth, slow release'}
+                    </p>
+                  </motion.div>
+                  
+                  <div className="pt-2">
+                    <span className="text-[9px] font-bold tracking-[0.4em] uppercase opacity-40 bg-white/40 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5">
+                      {formatTime(timeLeft)}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
           </AnimatePresence>
         </div>
-
-        {/* Phase Indicators */}
-        {isActive && (
-          <div className="flex gap-2">
-            {(['inhale', 'hold', 'exhale'] as Phase[]).map((p) => (
-              <div 
-                key={p} 
-                className={cn(
-                  "h-1 w-12 rounded-full transition-all duration-500",
-                  phase === p ? "bg-primary w-20" : "bg-primary/10"
-                )} 
-              />
-            ))}
-          </div>
-        )}
       </main>
     </div>
   );

@@ -46,7 +46,18 @@ export function Nav() {
     >
       <div className="bg-[#f5f5f0]/80 backdrop-blur-xl border border-[#ddd8ce] rounded-full px-6 md:px-8 py-2.5 md:py-3 flex items-center justify-between shadow-[0_4px_24px_rgba(61,44,30,0.06)]">
         <div className="flex items-center gap-12">
-          <Link href="/" className="text-xl md:text-2xl font-serif tracking-tight text-[#3a3a2e] hover:opacity-70 transition-opacity">Sanctuary</Link>
+          <Link 
+            href="/" 
+            onClick={(e) => {
+              if (pathname === '/') {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="text-xl md:text-2xl font-serif tracking-tight text-[#3a3a2e] hover:opacity-70 transition-opacity"
+          >
+            Sanctuary
+          </Link>
           
           {user ? (
             <div className="hidden md:flex gap-10 text-[10px] font-bold uppercase tracking-widest items-center">
@@ -70,13 +81,6 @@ export function Nav() {
                   )}
                 </Link>
               ))}
-              <button 
-                onClick={() => setIsSupportModalOpen(true)}
-                className="text-red-500/50 hover:text-red-500 transition-colors flex items-center gap-1.5"
-              >
-                <Heart className="w-3 h-3" />
-                Support
-              </button>
             </div>
           ) : pathname === '/' && (
             <div className="hidden md:flex gap-10 text-[13px] text-[#8c6e5a]">
@@ -149,15 +153,6 @@ export function Nav() {
                     {link.name}
                   </Link>
                 ))}
-                <button 
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsSupportModalOpen(true);
-                  }}
-                  className="text-xl font-serif text-red-500 text-left"
-                >
-                  Support
-                </button>
               </div>
 
               <div className="h-[1px] w-full bg-[#5a5a40]/5" />

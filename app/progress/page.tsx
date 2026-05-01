@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Nav } from '@/components/Nav';
-import { Check, Trophy, Flag, Star, Lock, Plus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, Trophy, Flag, Star, Lock, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { NeomorphicButton } from '@/components/ui/NeomorphicButton';
@@ -70,10 +70,10 @@ export default function ProgressPage() {
         getDocs(qLogs)
       ]);
 
-      const checkins = checkinsSnap.docs.map(d => ({ ...d.data(), type: 'checkin' }));
-      const logs = logsSnap.docs.map(d => ({ ...d.data(), type: 'log' }));
+      const checkins = checkinsSnap.docs.map(d => ({ ...d.data(), type: 'checkin' } as { timestamp: Timestamp; type: string }));
+      const logs = logsSnap.docs.map(d => ({ ...d.data(), type: 'log' } as { timestamp: Timestamp; type: string }));
       const allEntries = [...checkins, ...logs].sort((a, b) => 
-        (b.timestamp as Timestamp).toMillis() - (a.timestamp as Timestamp).toMillis()
+        (b.timestamp).toMillis() - (a.timestamp).toMillis()
       );
 
       // 1. Process Heatmap Data for viewed month
@@ -81,7 +81,7 @@ export default function ProgressPage() {
       const dailyCounts: Record<number, number> = {};
       
       allEntries.forEach(entry => {
-        const date = (entry.timestamp as Timestamp).toDate();
+        const date = entry.timestamp.toDate();
         if (date.getMonth() === targetDate.getMonth() && date.getFullYear() === targetDate.getFullYear()) {
           const d = date.getDate();
           dailyCounts[d] = (dailyCounts[d] || 0) + 1;
@@ -97,25 +97,21 @@ export default function ProgressPage() {
       setDays(heatmap);
 
       // 2. Calculate Streak
-      const uniqueDates = new Set(allEntries.map(e => (e.timestamp as Timestamp).toDate().toDateString()));
+      const uniqueDates = new Set(allEntries.map(e => e.timestamp.toDate().toDateString()));
       let currentStreak = 0;
       const checkDate = new Date();
       
-      while (true) {
-        if (uniqueDates.has(checkDate.toDateString())) {
-          currentStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          // If today is empty, check if yesterday had something to continue streak
-          if (currentStreak === 0) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            if (uniqueDates.has(checkDate.toDateString())) {
-              // Streak exists but didn't log today yet
-              continue;
-            }
-          }
-          break;
-        }
+      // If today is empty, we check if there's a streak ending yesterday
+      if (!uniqueDates.has(checkDate.toDateString())) {
+        checkDate.setDate(checkDate.getDate() - 1);
+      }
+
+      // Count backwards as long as we find consecutive days
+      while (uniqueDates.has(checkDate.toDateString())) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+        // Safety break to prevent infinite loops (e.g. 10 years max)
+        if (currentStreak > 3650) break;
       }
       setStreak(currentStreak);
 
@@ -131,7 +127,7 @@ export default function ProgressPage() {
 
       // 4. Daily Movement (Today's activity count)
       const todayCount = allEntries.filter(e => 
-        (e.timestamp as Timestamp).toDate().toDateString() === new Date().toDateString()
+        e.timestamp.toDate().toDateString() === new Date().toDateString()
       ).length;
       setDailyMovement(todayCount);
 
@@ -162,7 +158,7 @@ export default function ProgressPage() {
         start.setDate(start.getDate() - ((i + 1) * 7));
         
         const weekCheckins = checkins.filter((c: any) => {
-          const d = (c.timestamp as Timestamp).toDate();
+          const d = c.timestamp.toDate();
           return d >= start && d < end;
         });
         
@@ -270,6 +266,49 @@ export default function ProgressPage() {
           </p>
         </div>
 
+        {/* Top Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div 
+                key={i} 
+                className="bg-white p-6 md:p-8 rounded-[32px] border border-outline/5 shadow-sm text-center space-y-4 animate-pulse"
+              >
+                <div className="h-12 w-16 bg-[#f0f0eb] rounded-2xl mx-auto" />
+                <div className="space-y-2">
+                  <div className="h-2 w-24 bg-[#f0f0eb] rounded-full mx-auto" />
+                  <div className="h-2 w-16 bg-[#f0f0eb] rounded-full mx-auto opacity-40" />
+                </div>
+              </div>
+            ))
+          ) : (
+            (stats.length > 0 ? stats : [
+              { value: '0', label: 'Your Daily Movement', sub: 'entries today', color: 'text-[#3a3a2e]/20' },
+              { value: '0', label: 'Days Streak', sub: 'consecutive days', color: 'text-[#3a3a2e]/20' },
+              { value: '0', label: 'Stability', sub: 'of 10 points', color: 'text-[#3a3a2e]/20' },
+              { value: '0', label: 'Insights', sub: 'milestones met', color: 'text-[#3a3a2e]/20' },
+            ]).map((stat, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-white p-6 md:p-8 rounded-[32px] border border-outline/5 shadow-sm text-center space-y-2"
+              >
+                <span className={cn("text-4xl md:text-5xl font-bold", stat.color)}>{stat.value}</span>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#3a3a2e] opacity-60">
+                    {stat.label}
+                  </p>
+                  <p className={cn("text-[10px] font-bold", stat.sub.includes('+') || stat.sub.includes('up') ? 'text-primary' : 'text-on-surface-variant/40')}>
+                    {stat.sub}
+                  </p>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+
         {!hasData && !loading ? (
           <div className="space-y-12">
             {/* Onboarding State for Progress */}
@@ -305,68 +344,11 @@ export default function ProgressPage() {
                 </NeomorphicButton>
               </div>
             </section>
-
-            {/* Blurred Mock Preview */}
-            <div className="relative opacity-20 pointer-events-none filter blur-[2px] grayscale">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="bg-white p-8 rounded-[32px] h-32" />
-                ))}
-              </div>
-            </div>
           </div>
-        ) : (
+        ) : !loading && (
           <>
-            {/* Top Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-white p-6 md:p-8 rounded-[32px] border border-outline/5 shadow-sm text-center space-y-2"
-            >
-              <span className={cn("text-4xl md:text-5xl font-bold", stat.color)}>{stat.value}</span>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#3a3a2e] opacity-60">
-                  {stat.label}
-                </p>
-                <p className={cn("text-[10px] font-bold", stat.sub.includes('+') || stat.sub.includes('up') ? 'text-primary' : 'text-on-surface-variant/40')}>
-                  {stat.sub}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
 
-        {/* Score Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#3a3a2e] text-white p-6 md:p-8 rounded-[40px] flex flex-col md:flex-row items-center gap-8 shadow-xl"
-        >
-          <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
-            <svg className="absolute inset-0 w-full h-full -rotate-90">
-              <circle cx="48" cy="48" r="44" fill="transparent" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
-              <motion.circle 
-                cx="48" cy="48" r="44" fill="transparent" stroke="#d4a373" strokeWidth="6"
-                strokeDasharray={276}
-                initial={{ strokeDashoffset: 276 }}
-                animate={{ strokeDashoffset: 276 * (1 - (pauseRate / 100)) }}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-2xl font-bold text-[#d4a373]">{pauseRate}%</span>
-          </div>
-          <div className="space-y-4 text-center md:text-left">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-50">Overall Mindfulness Score</span>
-            <h2 className="text-2xl md:text-3xl font-serif italic italic leading-tight">
-              &quot;You paused before eating in {pausesCount} of your {totalCount} check-ins. That pause — however small — is the whole practice.&quot;
-            </h2>
-            <p className="text-sm opacity-40">Most users start around 20–30%. You&apos;re already ahead.</p>
-          </div>
-        </motion.div>
+
 
         {/* Today's Focus Section */}
         <div className="bg-[#416465]/5 p-8 md:p-12 rounded-[40px] border border-[#416465]/10 space-y-6">

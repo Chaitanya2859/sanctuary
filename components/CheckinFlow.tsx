@@ -14,6 +14,7 @@ import { checkSafety } from '@/lib/safety';
 import { SafetyModal } from './SafetyModal';
 
 import { getFallbackResponse } from '@/lib/fallbackResponses';
+import { getAIResponse } from '@/lib/ai';
 
 const FEELINGS = [
   'Joy', 'Trust', 'Fear', 'Surprise', 'Sadness', 'Disgust', 'Anger', 'Anticipation',
@@ -74,36 +75,21 @@ export function CheckinFlow({ onComplete }: CheckinFlowProps) {
       let aiResponse = "Every mindful moment is progress.";
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-      if (apiKey) {
-        try {
-          const { GoogleGenAI } = await import("@google/genai");
-          const ai = new GoogleGenAI({ apiKey });
-          
-          const prompt = `You are Sanctuary, a mindful eating coach. 
-          The user just checked in with these details:
-          - Emotions: ${selectedEmotions.join(', ')}
-          - Hunger level: ${hunger}/10
-          - Personal Note: ${reflection || 'None provided'}
-          
-          Provide a single, short (2-3 sentences), empathetic reflection or insight that helps the user feel seen and offers a small moment of mindfulness. 
-          Avoid generic advice. Focus on the connection between their current feeling and the hunger level.
-          Tone: Grounding, non-judgmental, and kind.
-          Do NOT mention diet, weight, or calories.`;
+      const prompt = `You are Sanctuary, a mindful eating coach. 
+      The user just checked in with these details:
+      - Emotions: ${selectedEmotions.join(', ')}
+      - Hunger level: ${hunger}/10
+      - Personal Note: ${reflection || 'None provided'}
+      
+      Provide a single, short (2-3 sentences), empathetic reflection or insight that helps the user feel seen and offers a small moment of mindfulness. 
+      Avoid generic advice. Focus on the connection between their current feeling and the hunger level.
+      Tone: Grounding, non-judgmental, and kind.
+      Do NOT mention diet, weight, or calories.`;
 
-          const result = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
-            contents: prompt
-          });
-          aiResponse = result.text || aiResponse;
-        } catch (genError) {
-          console.error("Gemini context generation failed, using fallback:", genError);
-          aiResponse = getFallbackResponse({
-            mood: selectedEmotions[0] as any,
-            hunger: hunger
-          });
-        }
+      const aiResponseResult = await getAIResponse(prompt);
+      if (aiResponseResult) {
+        aiResponse = aiResponseResult;
       } else {
-        console.warn("Gemini API key not found, using pre-written guidance.");
         aiResponse = getFallbackResponse({
           mood: selectedEmotions[0] as any,
           hunger: hunger

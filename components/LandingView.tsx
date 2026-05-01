@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
 import { Nav } from '@/components/Nav';
 import { ArrowRight } from 'lucide-react';
@@ -15,6 +15,8 @@ export function LandingView() {
       transition: { delay: custom * 0.1, duration: 0.7, ease: [0.21, 0.47, 0.32, 0.98] as any }
     })
   };
+
+  const [selectedResource, setSelectedResource] = useState<{name: string, contact: string} | null>(null);
 
   return (
     <div className="bg-bone min-h-screen text-brown font-sans overflow-x-hidden">
@@ -180,7 +182,7 @@ export function LandingView() {
       </section>
 
       {/* Support & Safety Section */}
-      <section id="support" className="py-16 px-6 md:px-12 bg-[#3d2c1e]/5 rounded-t-[80px]">
+      <section id="support" className="py-16 px-6 md:px-12">
         <div className="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
           <div className="space-y-6">
             <motion.div 
@@ -200,40 +202,83 @@ export function LandingView() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
             {[
-              { name: "NIMHANS Helpline", desc: "Psychosocial support from NIMHANS India", link: "tel:08046110007" },
-              { name: "Vandrevala Foundation", desc: "24/7 psychological crisis support", link: "tel:9999666555" },
-              { name: "iCall (TISS)", desc: "Psychosocial help across India", link: "tel:02225521111" },
-              { name: "Samaritans Mumbai", desc: "Emotional support & suicide prevention", link: "tel:8422984528" }
+              { name: "NIMHANS Helpline", desc: "Psychosocial support from India", contact: "080-46110007" },
+              { name: "Vandrevala Foundation", desc: "24/7 psychological crisis support", contact: "9999-666-555" },
+              { name: "iCall (TISS)", desc: "Psychosocial help across India", contact: "022-25521111" },
+              { name: "Samaritans Mumbai", desc: "Emotional support & prevention", contact: "8422984528" }
             ].map((resource, i) => (
-              <a 
+              <div 
                 key={i} 
-                href={resource.link} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-white p-6 rounded-3xl border border-border/50 hover:border-terra/30 transition-all group"
+                onClick={() => setSelectedResource(resource)}
+                className="bg-white p-6 rounded-3xl border border-border/50 hover:border-terra/30 transition-all group flex flex-col cursor-pointer hover:shadow-xl hover:-translate-y-1"
               >
-                <h4 className="font-bold text-brown group-hover:text-terra transition-colors mb-1">{resource.name}</h4>
-                <p className="text-[12px] text-mocha/60">{resource.desc}</p>
-                <div className="mt-4 text-[10px] font-bold uppercase tracking-widest text-terra/40 group-hover:text-terra transition-colors">Visit Resource →</div>
-              </a>
+                <h4 className="font-bold text-brown mb-1 group-hover:text-terra transition-colors">{resource.name}</h4>
+                <p className="text-[12px] text-mocha/60 mb-6">{resource.desc}</p>
+                <div className="mt-auto pt-4 border-t border-border/30 flex items-center justify-between">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-terra/40 group-hover:text-terra transition-colors">Contact Details →</div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-10 px-6 md:px-12 bg-[#3d2c1e]/5 max-w-full mx-auto flex flex-col md:flex-row items-center justify-between gap-8 border-t border-border/20">
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <div className="flex flex-col items-center md:items-start gap-1">
-            <div className="font-serif text-xl text-brown">Sanctuary</div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-terra/60">Sanctuary</div>
+      {/* Helpline Modal */}
+      <AnimatePresence>
+        {selectedResource && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedResource(null)}
+              className="absolute inset-0 bg-[#3d2c1e]/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-bone w-full max-w-sm rounded-[40px] p-10 shadow-2xl overflow-hidden border border-border"
+            >
+              <div className="text-[10px] text-terra tracking-widest uppercase font-bold mb-4 text-center">Support Resource</div>
+              <h3 className="font-serif text-3xl text-brown text-center mb-2">{selectedResource.name}</h3>
+              <p className="text-mocha/60 text-center text-sm mb-8 px-4">Please confirm if you would like to reach out for support.</p>
+              
+              <div className="bg-white/50 rounded-3xl p-6 mb-8 text-center border border-border/50 shadow-inner">
+                <div className="text-2xl font-mono font-bold text-brown tracking-tight">{selectedResource.contact}</div>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <a 
+                  href={`tel:${selectedResource.contact.replace(/-/g, '')}`}
+                  className="w-full py-5 bg-moss text-bone rounded-full text-center font-bold tracking-tight hover:bg-brown transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  Call Helpline Now
+                </a>
+                <button 
+                  onClick={() => setSelectedResource(null)}
+                  className="w-full py-4 text-mocha/40 font-bold uppercase tracking-widest text-[11px] hover:text-brown transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
           </div>
-          <div className="text-[11px] font-serif italic text-mocha/40">
-            &quot;The pause is where your freedom lives.&quot;
+        )}
+      </AnimatePresence>
+
+      {/* Minimal Footer */}
+      <footer className="w-full py-4 border-t border-border/5 bg-white/50 mt-8 md:mt-12">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-10 md:gap-12 text-center md:text-left">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="font-serif text-3xl font-bold tracking-tighter opacity-10 text-brown">Sanctuary.</div>
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-mocha/20 italic">
+              &quot;The pause is where your freedom lives.&quot;
+            </div>
           </div>
-        </div>
-        <div className="flex gap-8">
-          <Link href="#support" className="text-[11px] font-bold uppercase tracking-widest text-terra hover:text-brown transition-colors">Emergency Resources</Link>
+          <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-mocha/40">
+            Sanctuary
+          </div>
         </div>
       </footer>
     </div>

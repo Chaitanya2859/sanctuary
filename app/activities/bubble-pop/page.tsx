@@ -153,7 +153,7 @@ export default function BubblePopPage() {
       {/* Header Info */}
       <div className="fixed top-24 left-0 right-0 z-50 flex items-center justify-between px-8 pointer-events-none">
         <button 
-          onClick={() => router.push('/activities')}
+          onClick={() => router.push('/')}
           className="p-4 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-outline/5 pointer-events-auto hover:bg-white transition-colors"
         >
           <ArrowLeft className="w-5 h-5 opacity-40" />

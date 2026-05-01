@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, Smile, Frown, Meh } from 
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getFallbackResponse } from '@/lib/fallbackResponses';
+import { getAIResponse } from '@/lib/ai';
 import Link from 'next/link';
 
 const EMOTIONS = ['Joy', 'Trust', 'Fear', 'Surprise', 'Sadness', 'Disgust', 'Anger', 'Anticipation', 'Calm', 'Guilty', 'Regretful', 'Comforted'];
@@ -22,7 +23,9 @@ export function PostEatLogFlow({ onClose, onComplete }: PostEatLogFlowProps) {
   const [satisfied, setSatisfied] = useState<'yes' | 'no' | 'neutral' | null>(null);
   const [wasNeeded, setWasNeeded] = useState<'yes' | 'no' | 'unsure' | null>(null);
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
+  const [comment, setComment] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [completeInsight, setCompleteInsight] = useState<string | null>(null);
 
   const toggleEmotion = (emotion: string) => {
@@ -42,31 +45,20 @@ export function PostEatLogFlow({ onClose, onComplete }: PostEatLogFlowProps) {
       
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-      if (apiKey) {
-        try {
-          const { GoogleGenAI } = await import("@google/genai");
-          const ai = new GoogleGenAI({ apiKey });
-          const prompt = `You are Sanctuary, a mindful eating coach.
-          The user just finished a meal and logged these details:
-          - Satisfaction: ${satisfied}
-          - Was it physically needed: ${wasNeeded}
-          - Emotions felt after: ${selectedEmotions.join(', ') || 'None mentioned'}
+      const prompt = `You are Sanctuary, a mindful eating coach.
+      The user just finished a meal and logged these details:
+      - Satisfaction: ${satisfied}
+      - Was it physically needed: ${wasNeeded}
+      - Emotions felt after: ${selectedEmotions.join(', ') || 'None mentioned'}
+      - User's reflection: ${comment || 'No comment provided'}
 
-          Provide a single, short (2 sentences), compassionate reflection that validates their experience and encourages continued awareness.
-          Tone: Gentle, non-judgmental.
-          Do NOT mention weight or calories.`;
+      Provide a single, short (2 sentences), compassionate reflection that validates their experience and encourages continued awareness.
+      Tone: Gentle, non-judgmental.
+      Do NOT mention weight or calories.`;
 
-          const result = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
-            contents: prompt
-          });
-          aiResponse = result.text || aiResponse;
-        } catch (e) {
-          console.error("Gemini failed in log flow, using fallback:", e);
-          aiResponse = getFallbackResponse({
-            mood: selectedEmotions[0] as any
-          });
-        }
+      const aiResponseResult = await getAIResponse(prompt);
+      if (aiResponseResult) {
+        aiResponse = aiResponseResult;
       } else {
         aiResponse = getFallbackResponse({
           mood: selectedEmotions[0] as any
@@ -79,17 +71,18 @@ export function PostEatLogFlow({ onClose, onComplete }: PostEatLogFlowProps) {
         satisfied,
         wasNeeded,
         emotions: selectedEmotions,
+        comment: comment,
         aiResponse: aiResponse,
         timestamp: serverTimestamp(),
       });
       
-      setCompleteInsight(aiResponse);
+      setIsSuccess(true);
+      setTimeout(() => {
+        onComplete();
+      }, 1500);
     } catch (error) {
       console.error("Failed to save log:", error);
-      const fallback = getFallbackResponse({
-        mood: selectedEmotions[0] as any
-      });
-      setCompleteInsight(fallback);
+      onComplete();
     } finally {
       setIsSaving(false);
     }
@@ -102,14 +95,14 @@ export function PostEatLogFlow({ onClose, onComplete }: PostEatLogFlowProps) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className={cn(
           "w-full max-w-lg bg-white rounded-[40px] shadow-2xl overflow-hidden relative border border-outline/5",
-          completeInsight ? "max-w-xl" : "max-w-lg"
+          (completeInsight || isSuccess) ? "max-w-xl" : "max-w-lg"
         )}
       >
-        {!completeInsight && (
+        {!completeInsight && !isSuccess && (
           <div className="absolute top-0 left-0 w-full h-1.5 bg-outline/5">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: `${(step / 3) * 100}%` }}
+              animate={{ width: `${(step / 4) * 100}%` }}
               className="h-full bg-primary"
             />
           </div>
@@ -117,7 +110,27 @@ export function PostEatLogFlow({ onClose, onComplete }: PostEatLogFlowProps) {
 
         <div className="p-8 md:p-12 space-y-8">
           <AnimatePresence mode="wait">
-            {completeInsight ? (
+            {isSuccess ? (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-12 space-y-6"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                  className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto"
+                >
+                  <CheckCircle2 className="w-10 h-10 text-primary" />
+                </motion.div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-serif text-[#3a3a2e]">Response Recorded</h2>
+                  <p className="text-sm text-on-surface-variant/60">Your awareness grows with every entry.</p>
+                </div>
+              </motion.div>
+            ) : completeInsight ? (
               <motion.div
                 key="complete"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -137,8 +150,8 @@ export function PostEatLogFlow({ onClose, onComplete }: PostEatLogFlowProps) {
                   <NeomorphicButton variant="primary" onClick={onComplete} className="w-full">
                     Back to overview
                   </NeomorphicButton>
-                  <Link href="/journal" className="w-full">
-                    <NeomorphicButton onClick={onComplete} className="w-full bg-white">
+                  <Link href="/journal" className="w-full" onClick={onComplete}>
+                    <NeomorphicButton className="w-full bg-white">
                       View Journal
                     </NeomorphicButton>
                   </Link>
@@ -276,6 +289,42 @@ export function PostEatLogFlow({ onClose, onComplete }: PostEatLogFlowProps) {
 
                 <div className="flex justify-between pt-4">
                   <button onClick={() => setStep(2)} className="flex items-center gap-2 text-sm font-bold opacity-40 hover:opacity-100 transition-opacity uppercase tracking-widest">
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </button>
+                  <NeomorphicButton 
+                    onClick={() => setStep(4)}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ArrowRight className="w-4 h-4" />
+                  </NeomorphicButton>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div 
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-serif text-on-surface">Final reflection</h2>
+                  <p className="text-sm text-on-surface-variant/60">Anything else you&apos;d like to note about this experience?</p>
+                </div>
+
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Capture any thoughts or nuances here..."
+                  className="w-full h-32 p-6 rounded-3xl bg-[#f5f5f0] border-none focus:ring-2 focus:ring-primary/20 transition-all text-sm resize-none placeholder:opacity-30"
+                />
+
+                <div className="flex justify-between pt-4">
+                  <button onClick={() => setStep(3)} className="flex items-center gap-2 text-sm font-bold opacity-40 hover:opacity-100 transition-opacity uppercase tracking-widest">
                     <ArrowLeft className="w-4 h-4" />
                     Back
                   </button>

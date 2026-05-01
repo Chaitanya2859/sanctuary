@@ -13,7 +13,7 @@ import {
   where, 
   orderBy, 
   getDocs, 
-  Timestamp, 
+  Timestamp,
   limit 
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -31,6 +31,7 @@ import {
 } from 'recharts';
 import { Frown, Zap, Moon, Coffee, User, Smile, Ghost, Activity } from 'lucide-react';
 import { SafetyModal } from '@/components/SafetyModal';
+import { getAIResponse } from '@/lib/ai';
 
 const emotionIcons: Record<string, any> = {
   'Stressed': Zap,
@@ -82,13 +83,7 @@ export default function InsightsPage() {
 
   const generateAISummary = async (checkins: any[], logs: any[], topEmotions: EmotionStat[]) => {
     setGeneratingSummary(true);
-    try {
-      const { GoogleGenAI } = await import("@google/genai");
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("No API Key");
-
-      const ai = new GoogleGenAI({ apiKey });
-      const prompt = `
+    const prompt = `
         You are Sanctuary, an empathetic emotional eating coach. 
         Generate a "Weekly Reflection" for the user based on their data.
         
@@ -106,13 +101,13 @@ export default function InsightsPage() {
         - End with a gentle, mindful invitation.
       `;
 
-      const result = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: prompt
-      });
-      setSummary(result.text || "You're building awareness day by day. Every mindful moment is progress.");
-    } catch (e) {
-      setSummary("You're building awareness day by day. Every mindful moment is progress.");
+    try {
+      const aiResponseResult = await getAIResponse(prompt);
+      if (aiResponseResult) {
+        setSummary(aiResponseResult);
+      } else {
+        setSummary("You're building awareness day by day. Every mindful moment is progress.");
+      }
     } finally {
       setGeneratingSummary(false);
     }
