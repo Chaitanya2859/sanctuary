@@ -183,11 +183,11 @@ export default function ProgressPage() {
       if (user) {
         fetchRealStats(user.uid, viewDate);
       } else {
-        setLoading(false);
+        router.push('/');
       }
     });
     return () => unsubscribe();
-  }, [fetchRealStats, viewDate]);
+  }, [fetchRealStats, viewDate, router]);
 
   const changeMonth = (offset: number) => {
     setViewDate(prev => {

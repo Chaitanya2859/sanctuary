@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowRight, Info, Loader2, Sparkles, TrendingUp, Calendar, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db, auth } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 import { 
   collection, 
   query, 
@@ -65,6 +66,7 @@ interface HungerDataPoint {
 }
 
 export default function InsightsPage() {
+  const router = useRouter();
   const tabs = ['This week', 'Last 30 days', 'All time'];
   const [activeTab, setActiveTab] = useState('This week');
   const [loading, setLoading] = useState(true);
@@ -290,7 +292,7 @@ export default function InsightsPage() {
       if (user) {
         fetchRealInsights(user.uid);
       } else {
-        setLoading(false);
+        router.push('/');
       }
     });
     return () => unsubscribe();

@@ -140,7 +140,7 @@ export function Nav() {
               className="absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl shadow-2xl border border-[#5a5a40]/10 p-8 flex flex-col gap-8 md:hidden z-40 rounded-[32px]"
             >
               <div className="flex flex-col gap-6">
-                {links.map((link) => (
+                {user && links.map((link) => (
                   <Link
                     key={link.name}
                     href={link.href}
