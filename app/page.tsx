@@ -62,10 +62,10 @@ export default function SanctuaryPage() {
             getDocs(qLogs)
           ]);
 
-          const checkins = checkinsSnap.docs.map(d => ({ ...d.data(), type: 'checkin' }));
-          const logs = logsSnap.docs.map(d => ({ ...d.data(), type: 'log' }));
+          const checkins = checkinsSnap.docs.map(d => ({ ...d.data(), type: 'checkin' } as { timestamp: Timestamp; type: string; aiResponse?: string; emotions?: string[] }));
+          const logs = logsSnap.docs.map(d => ({ ...d.data(), type: 'log' } as { timestamp: Timestamp; type: string }));
           const allEntries = [...checkins, ...logs].sort((a, b) => 
-            (b.timestamp as Timestamp).toMillis() - (a.timestamp as Timestamp).toMillis()
+            (b.timestamp).toMillis() - (a.timestamp).toMillis()
           );
 
           if (allEntries.length === 0) {
@@ -73,22 +73,21 @@ export default function SanctuaryPage() {
             return;
           }
 
-          const uniqueDates = new Set(allEntries.map(e => (e.timestamp as Timestamp).toDate().toDateString()));
+          const uniqueDates = new Set(allEntries.map(e => e.timestamp.toDate().toDateString()));
           
           // Streak
           let streakCount = 0;
           const checkDate = new Date();
-          while (true) {
-            if (uniqueDates.has(checkDate.toDateString())) {
-              streakCount++;
-              checkDate.setDate(checkDate.getDate() - 1);
-            } else {
-              if (streakCount === 0) {
-                checkDate.setDate(checkDate.getDate() - 1);
-                if (uniqueDates.has(checkDate.toDateString())) continue;
-              }
-              break;
-            }
+          
+          // If today is empty, check if there's a streak ending yesterday
+          if (!uniqueDates.has(checkDate.toDateString())) {
+            checkDate.setDate(checkDate.getDate() - 1);
+          }
+
+          while (uniqueDates.has(checkDate.toDateString())) {
+            streakCount++;
+            checkDate.setDate(checkDate.getDate() - 1);
+            if (streakCount > 3650) break; // Safety
           }
 
           // Stability
@@ -96,11 +95,11 @@ export default function SanctuaryPage() {
             const d = new Date();
             d.setDate(d.getDate() - i);
             return uniqueDates.has(d.toDateString()) ? 1 : 0;
-          }).reduce((a, b) => a + b, 0);
+          }).reduce((a: number, b: number) => a + b, 0);
 
           // Daily Movement
           const todayCount = allEntries.filter(e => 
-            (e.timestamp as Timestamp).toDate().toDateString() === new Date().toDateString()
+            e.timestamp.toDate().toDateString() === new Date().toDateString()
           ).length;
 
           setStats({

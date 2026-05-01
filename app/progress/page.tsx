@@ -121,7 +121,7 @@ export default function ProgressPage() {
         const d = new Date();
         d.setDate(d.getDate() - i);
         return uniqueDates.has(d.toDateString()) ? 1 : 0;
-      }).reduce((a, b) => a + b, 0);
+      }).reduce((a: number, b: number) => a + b, 0);
       const stabilityValue = Math.floor((activeLast14 / 14) * 10);
       setStability(stabilityValue);
 
