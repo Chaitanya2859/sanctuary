@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, updateProfile } from 'firebase/auth';
