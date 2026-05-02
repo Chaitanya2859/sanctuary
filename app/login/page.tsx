@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { auth, db } from '@/lib/firebase';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -34,12 +34,28 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      router.push('/');
+      // Use redirect instead of popup for better reliability in all browsers
+      await signInWithRedirect(auth, provider);
     } catch (err: any) {
       setError(err.message || 'Google login failed');
     }
   };
+
+  useEffect(() => {
+    // Check for redirect result when the page loads
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          router.push('/');
+        }
+      } catch (err: any) {
+        console.error("Redirect error:", err);
+        setError(err.message || 'Failed to complete Google login');
+      }
+    };
+    checkRedirect();
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-[#f5f5f0] flex items-center justify-center p-6 pb-20">

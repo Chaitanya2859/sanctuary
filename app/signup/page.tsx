@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { auth, db } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, updateProfile } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -46,18 +46,32 @@ export default function SignupPage() {
   const handleGoogleSignup = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      const res = await signInWithPopup(auth, provider);
-      await setDoc(doc(db, 'users', res.user.uid), {
-        name: res.user.displayName,
-        email: res.user.email,
-        createdAt: new Date().toISOString(),
-        onboardingCompleted: false
-      }, { merge: true });
-      router.push('/');
+      await signInWithRedirect(auth, provider);
     } catch (err: any) {
       setError(err.message || 'Google login failed');
     }
   };
+
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const res = await getRedirectResult(auth);
+        if (res?.user) {
+          await setDoc(doc(db, 'users', res.user.uid), {
+            name: res.user.displayName,
+            email: res.user.email,
+            createdAt: new Date().toISOString(),
+            onboardingCompleted: false
+          }, { merge: true });
+          router.push('/');
+        }
+      } catch (err: any) {
+        console.error("Redirect error:", err);
+        setError(err.message || 'Failed to complete Google signup');
+      }
+    };
+    checkRedirect();
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-[#f5f5f0] flex items-center justify-center p-6 pb-20">
